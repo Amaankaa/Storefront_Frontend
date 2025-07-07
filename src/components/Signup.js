@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-function Signup({ onSignup, onSwitchToLogin }) {
+function Signup({ onSwitchToLogin }) {
+  const { signup } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -17,7 +21,7 @@ function Signup({ onSignup, onSwitchToLogin }) {
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError(''); // Clear error when user types
+    setError('');
   };
 
   const validateForm = () => {
@@ -48,207 +52,121 @@ function Signup({ onSignup, onSwitchToLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setLoading(true);
     setError('');
-
-    // Debug: Log what we're sending
-    const signupData = {
-      username: formData.username,
-      email: formData.email,
-      password: formData.password,
-      first_name: formData.first_name,
-      last_name: formData.last_name
-    };
-    console.log('Sending signup data:', signupData);
-
-    try {
-      const response = await fetch('http://localhost:8000/auth/users/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(signupData)
-      });
-
-      console.log('Signup response status:', response.status);
-      const data = await response.json();
-      console.log('Signup response data:', data);
-
-      if (response.ok) {
-        // Store JWT token in localStorage if provided
-        if (data.access) {
-          localStorage.setItem('token', data.access);
-        }
-        if (data.refresh) {
-          localStorage.setItem('refreshToken', data.refresh);
-        }
-        
-        // Call the onSignup callback to update parent component
-        onSignup(data);
-      } else {
-        // Handle specific validation errors
-        if (data.password && data.password.includes('too similar to the username')) {
-          setError('Password cannot be too similar to your username. Please choose a different password.');
-        } else if (data.username && data.username.includes('already exists')) {
-          setError('Username already exists. Please choose a different username.');
-        } else if (data.email && data.email.includes('already exists')) {
-          setError('Email already exists. Please use a different email address.');
-        } else {
-          // Show the first error message from the backend
-          const firstError = Object.values(data)[0];
-          if (Array.isArray(firstError)) {
-            setError(firstError[0]);
-          } else {
-            setError(data.message || data.detail || 'Registration failed. Please try again.');
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Signup error:', err);
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+    const result = await signup(formData);
+    if (!result.success) {
+      setError(result.error || 'Registration failed. Please try again.');
+    } else {
+      navigate('/products');
     }
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            Or{' '}
-            <button
-              onClick={onSwitchToLogin}
-              className="font-medium text-indigo-400 hover:text-indigo-300"
-            >
-              sign in to your existing account
-            </button>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="username" className="sr-only">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
-                value={formData.username}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="first_name" className="sr-only">
-                First Name
-              </label>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-800 via-purple-900 to-indigo-900 relative overflow-hidden">
+      {/* Decorative Blobs */}
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-500 opacity-30 rounded-full filter blur-3xl animate-pulse z-0" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-pink-500 opacity-30 rounded-full filter blur-3xl animate-pulse z-0" />
+      <div className="relative z-10 w-full max-w-lg mx-auto">
+        <div className="bg-gray-900 bg-opacity-90 rounded-2xl shadow-2xl px-10 py-12 flex flex-col items-center">
+          <h2 className="text-4xl font-extrabold text-white mb-2 tracking-tight drop-shadow-lg">Create Account</h2>
+          <p className="text-gray-400 mb-8 text-center">Join Storefront and unlock exclusive deals, fast checkout, and more!</p>
+          <form className="w-full space-y-6" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 id="first_name"
                 name="first_name"
                 type="text"
                 autoComplete="given-name"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="rounded-lg px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-lg shadow col-span-1"
                 placeholder="First Name"
                 value={formData.first_name}
                 onChange={handleChange}
               />
-            </div>
-            <div>
-              <label htmlFor="last_name" className="sr-only">
-                Last Name
-              </label>
               <input
                 id="last_name"
                 name="last_name"
                 type="text"
                 autoComplete="family-name"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="rounded-lg px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-lg shadow col-span-1"
                 placeholder="Last Name"
                 value={formData.last_name}
                 onChange={handleChange}
               />
             </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
+            <div className="flex flex-col gap-4">
+              <input
+                id="username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                required
+                className="rounded-lg px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-lg shadow"
+                placeholder="Username"
+                value={formData.username}
+                onChange={handleChange}
+              />
               <input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="rounded-lg px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-lg shadow"
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleChange}
               />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="rounded-lg px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-lg shadow"
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
               />
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
-              </label>
               <input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="rounded-lg px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-lg shadow"
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
               />
             </div>
-          </div>
-
-          {error && (
-            <div className="text-red-400 text-sm text-center">
-              {error}
-            </div>
-          )}
-
-          <div>
+            {error && (
+              <div className="text-red-400 text-sm text-center font-semibold mt-2">
+                {error}
+              </div>
+            )}
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 mt-2 bg-gradient-to-r from-indigo-500 via-pink-500 to-yellow-400 text-white font-bold rounded-lg shadow-lg hover:from-indigo-400 hover:to-yellow-300 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? 'Creating account...' : 'Create Account'}
+            </button>
+          </form>
+          <div className="mt-8 text-gray-400 text-sm text-center">
+            Already have an account?{' '}
+            <button
+              onClick={onSwitchToLogin}
+              className="text-yellow-300 hover:text-indigo-300 font-semibold transition"
+            >
+              Sign in
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

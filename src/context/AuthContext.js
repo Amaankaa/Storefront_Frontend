@@ -67,34 +67,26 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      // If credentials already contain tokens (from Login component), use them
-      if (credentials.access) {
+      if (credentials.access && credentials.refresh) {
         localStorage.setItem('token', credentials.access);
-        if (credentials.refresh) {
-          localStorage.setItem('refreshToken', credentials.refresh);
-        }
-        
+        localStorage.setItem('refreshToken', credentials.refresh);
         // Get user data with correct JWT format
         const headers = {
           'Authorization': `JWT ${credentials.access}`,
           'Content-Type': 'application/json'
         };
-        
         const userResponse = await fetch('http://localhost:8000/auth/users/me/', {
           method: 'GET',
           headers: headers
         });
-        
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser(userData);
         } else {
           console.error('Failed to get user data:', userResponse.status);
         }
-        
         return { success: true };
       }
-
       // Otherwise, fetch tokens from backend
       const response = await fetch('http://localhost:8000/auth/jwt/create/', {
         method: 'POST',
@@ -103,33 +95,27 @@ export const AuthProvider = ({ children }) => {
         },
         body: JSON.stringify(credentials)
       });
-
       const data = await response.json();
-
       if (response.ok) {
         localStorage.setItem('token', data.access);
         if (data.refresh) {
           localStorage.setItem('refreshToken', data.refresh);
         }
-        
         // Get user data with correct JWT format
         const headers = {
           'Authorization': `JWT ${data.access}`,
           'Content-Type': 'application/json'
         };
-        
         const userResponse = await fetch('http://localhost:8000/auth/users/me/', {
           method: 'GET',
           headers: headers
         });
-        
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser(userData);
         } else {
           console.error('Failed to get user data:', userResponse.status);
         }
-        
         return { success: true };
       } else {
         return { success: false, error: data.message || data.detail || 'Login failed' };
@@ -152,17 +138,12 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        // After successful registration, automatically log in
+        // After successful registration, automatically log in with username and password
         const loginResult = await login({
           username: userData.username,
           password: userData.password
         });
-        
-        if (loginResult.success) {
-          return { success: true };
-        } else {
-          return { success: false, error: 'Registration successful but login failed' };
-        }
+        return loginResult;
       } else {
         return { success: false, error: data.message || data.detail || 'Registration failed' };
       }
